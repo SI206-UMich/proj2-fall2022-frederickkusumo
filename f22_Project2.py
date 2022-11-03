@@ -1,10 +1,14 @@
+# Your name: Frederick Kusumo
+# Your student id: 95607036
+# Your email: fkusumo@umich.edu
+# List who you have worked with on this homework: JianXian Xu
+
 from xml.sax import parseString
 from bs4 import BeautifulSoup
 import re
 import os
 import csv
 import unittest
-
 
 def get_listings_from_search_results(html_file):
     """
@@ -25,8 +29,31 @@ def get_listings_from_search_results(html_file):
         ('Loft in Mission District', 210, '1944564'),  # example
     ]
     """
-    pass
-
+    source_dir = os.path.dirname(__file__) 
+    full_path = os.path.join(source_dir, html_file)
+    file = open(full_path,'r')
+    file_handle = file.read()
+    file.close()
+    soup = BeautifulSoup(file_handle, 'html.parser')
+    title = soup.find_all('div', class_='t1jojoys dir dir-ltr')
+    title_list = [i.text for i in title]
+    cost = soup.find_all('span', class_='_tyxjp1')
+    cost_ = [i.text for i in cost]
+    cost_list = []
+    for cost in cost_:
+        cost_list.append(int(cost.strip('$ ')))
+    id = soup.find_all('a', class_='ln2bl2p dir dir-ltr')
+    id_list = []
+    for i in id:
+        link = i.get('href', None)
+        regexp = r'\/(\d+)\?.+'
+        idnum = re.findall(regexp, link)
+        id_list.extend(idnum)
+    listings = []
+    for i in range(len(title_list)):
+        listinginfo = (title_list[i], cost_list[i], id_list[i])
+        listings.append(listinginfo)
+    return listings
 
 def get_listing_information(listing_id):
     """
@@ -52,8 +79,32 @@ def get_listing_information(listing_id):
         number of bedrooms
     )
     """
-    pass
-
+    source_dir = os.path.dirname(__file__) 
+    full_path = os.path.join(source_dir, listing_id)
+    file = open(full_path,'r')
+    file_handle = file.read()
+    file.close()
+    soup = BeautifulSoup(file_handle, 'html.parser')
+    pol = soup.find('li', class_="f19phm7j dir dir-ltr")
+    find_pol = pol.find('span', class_="ll4r2nl dir dir-ltr")
+    pol_num = find_pol.text
+    print(pol_num)
+    if 'pending' in pol_num:
+        pol_num = 'Pending'
+    elif 'exempt' in pol_num:
+        pol_num = 'Exempt'
+    type_ = soup.find('meta', property='og:description')
+    type_text = type_.text
+    place_type = ''
+    if 'private' in type_text:
+        place_type = 'Private Room'
+    elif 'shared' in type_text:
+        place_type = 'Shared Room'
+    else:
+        place_type = 'Entire Room'
+    room = soup.find('span', class_="axjq0r dir dir-ltr")
+    room_num = re.sub(r'\s[A-Za-z]+', '', room.text[1])
+    return (pol_num, place_type, int(room_num))
 
 def get_detailed_listing_database(html_file):
     """
@@ -239,7 +290,9 @@ class TestCases(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    database = get_detailed_listing_database("html_files/mission_district_search_results.html")
-    write_csv(database, "airbnb_dataset.csv")
-    check_policy_numbers(database)
-    unittest.main(verbosity=2)
+    listing_result = get_listings_from_search_results("html_files/mission_district_search_results.html")
+    listing_info = get_listing_information('html_files/listing_1944564.html')
+    # write_csv(database, "airbnb_dataset.csv")
+    # check_policy_numbers(database)
+    # unittest.main(verbosity=2)
+    print(listing_info)
